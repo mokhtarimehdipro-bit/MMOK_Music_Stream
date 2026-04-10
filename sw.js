@@ -1,7 +1,4 @@
-self.addEventListener('install', (e) => {
-  self.skipWaiting();
-});
+self.addEventListener('install', (e) => { e.waitUntil(self.skipWaiting()); });
+self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+self.addEventListener('fetch', (e) => { /* Obligatoire pour Chrome */ });
 
-self.addEventListener('fetch', (event) => {
-  // Nécessaire pour valider les critères PWA
-});
