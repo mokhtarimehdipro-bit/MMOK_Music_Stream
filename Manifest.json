@@ -1,11 +1,10 @@
 {
   "name": "MMOK Music Stream",
-  "short_name": "MMOK Music",
-  "description": "Mon lecteur personnel de musique Google Drive",
-  "start_url": "./index.html",
+  "short_name": "MMOK",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#16123a",
+  "theme_color": "#060a17",
   "icons": [
     {
       "src": "logo.png",
@@ -15,3 +14,4 @@
     }
   ]
 }
+
