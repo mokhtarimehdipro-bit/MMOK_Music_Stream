@@ -18,7 +18,24 @@
       --glow-subtle: 0 0 15px rgba(255, 64, 129, 0.2);
     }
 
-    body { margin: 0; font-family: 'Segoe UI', 'Roboto', sans-serif; background: var(--bg-gradient); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(10px); }
+    body { 
+      margin: 0; 
+      font-family: 'Segoe UI', 'Roboto', sans-serif; 
+      background: var(--bg-gradient); 
+      color: var(--text-main); 
+      /* LE FIX MOBILE EST ICI : Ancrage absolu aux 4 coins de l'écran */
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+      backdrop-filter: blur(10px); 
+    }
+    
     #auth-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-gradient); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
     .app-wrapper { display: flex; flex: 1; overflow: hidden; }
 
@@ -91,7 +108,6 @@
     .np-title { font-size: 14px; color: var(--text-main); font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; transition: color 0.2s; }
     .np-artist { font-size: 12px; color: var(--text-secondary); margin-top: 4px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
     
-    /* Boutons de Contrôle */
     .player-controls { width: 40%; display: flex; justify-content: center; align-items: center; gap: 15px; }
     .control-btn { background: none; border: none; color: var(--text-main); cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; padding: 10px; outline: none; }
     .control-btn:hover { color: var(--neon-rose); transform: scale(1.1); text-shadow: var(--glow-subtle); }
@@ -104,7 +120,7 @@
     .active-loop { color: var(--neon-rose) !important; filter: drop-shadow(0 0 5px var(--neon-rose)); }
     
     .player-spacer { width: 30%; }
-    audio { display: none; } /* On cache l'audio natif moche */
+    audio { display: none; } 
     
     .hidden { display: none !important; }
     .loading-pulse { animation: pulse-text 1.5s infinite; color: var(--neon-indigo) !important; }
@@ -129,16 +145,24 @@
       .search-bar { width: 100%; box-sizing: border-box; }
       .view-title { margin-left: 0; align-self: flex-start; }
       .home-cover { width: 220px; height: 220px; margin-bottom: 20px; }
-      .home-title { font-size: 1.8rem; }
+      .home-title { font-size: 1.6rem; }
       .home-artist-album { font-size: 1rem; margin-bottom: 30px; }
-      .progress-wrapper { width: 95%; }
+      .progress-wrapper { width: 100%; }
 
-      /* Mobile Player Controls */
-      .player-bar { flex-direction: column; height: auto; padding: 15px; gap: 15px; }
+      /* Ajustement précis de la barre du bas pour éviter d'être coupée par Android */
+      .player-bar { 
+        flex-direction: column; 
+        height: auto; 
+        /* La magie opère ici : padding-bottom dynamique */
+        padding: 10px 15px calc(15px + env(safe-area-inset-bottom)) 15px; 
+        gap: 8px; 
+      }
       .now-playing { width: 100%; justify-content: flex-start; }
+      #bottom-cover { width: 40px; height: 40px; }
+      
       .player-controls { width: 100%; gap: 10px; }
-      .control-btn svg { width: 20px; height: 20px; }
-      .play-btn { width: 45px; height: 45px; }
+      .control-btn svg { width: 22px; height: 22px; }
+      .play-btn { width: 44px; height: 44px; margin: 0 5px; }
       .play-btn svg { width: 24px; height: 24px; }
       .player-spacer { display: none; }
       
@@ -248,7 +272,6 @@
     const db = new Dexie('MMOKMusicDB');
     db.version(4).stores({ tracks: 'id, title, artist, album, cover, driveFileId', syncState: 'key, value' });
 
-    // VARIABLES DE LISTE DE LECTURE (Playlist)
     let currentPlaylist = [];
     let currentTrackIndex = -1;
 
@@ -282,7 +305,6 @@
     const timeTotal = document.getElementById('time-total');
     const totalCountSpan = document.getElementById('total-count');
 
-    // BOUTONS DE CONTRÔLE
     const btnPlay = document.getElementById('btn-play');
     const btnNext = document.getElementById('btn-next');
     const btnPrev = document.getElementById('btn-prev');
@@ -297,7 +319,6 @@
       return `${min}:${sec < 10 ? '0' : ''}${sec}`;
     }
 
-    // MISE A JOUR DE L'ICÔNE PLAY/PAUSE
     function togglePlayIcon(isPlaying) {
       if(isPlaying) {
         iconPlay.classList.add('hidden');
@@ -308,47 +329,39 @@
       }
     }
 
-    // ACTIONS DES BOUTONS
     btnPlay.addEventListener('click', () => {
-      if (!mainAudio.src || mainAudio.src.endsWith(window.location.pathname)) return; // Si rien n'est chargé
+      if (!mainAudio.src || mainAudio.src.endsWith(window.location.pathname)) return; 
       if (mainAudio.paused) { mainAudio.play(); togglePlayIcon(true); } 
       else { mainAudio.pause(); togglePlayIcon(false); }
     });
 
     btnNext.addEventListener('click', () => playNextTrack());
     btnPrev.addEventListener('click', () => playPrevTrack());
-    
-    btnLoop.addEventListener('click', () => {
-      btnLoop.classList.toggle('active-loop');
-    });
+    btnLoop.addEventListener('click', () => btnLoop.classList.toggle('active-loop'));
 
-    // PASSAGE A LA PISTE SUIVANTE
     function playNextTrack() {
       if (currentPlaylist.length === 0) return;
       let nextIndex = currentTrackIndex + 1;
-      
-      // Si on arrive à la fin de la liste
       if (nextIndex >= currentPlaylist.length) {
-        if (btnLoop.classList.contains('active-loop')) { nextIndex = 0; } // Repart du début si boucle active
-        else { return; } // S'arrête si pas de boucle
+        if (btnLoop.classList.contains('active-loop')) { nextIndex = 0; } 
+        else { return; } 
       }
       playTrack(currentPlaylist[nextIndex], nextIndex, currentPlaylist);
     }
 
     function playPrevTrack() {
       if (currentPlaylist.length === 0) return;
-      if (mainAudio.currentTime > 3) { mainAudio.currentTime = 0; return; } // Si ça joue depuis 3s, on recommence juste la piste
+      if (mainAudio.currentTime > 3) { mainAudio.currentTime = 0; return; } 
       let prevIndex = currentTrackIndex - 1;
       if (prevIndex < 0) prevIndex = 0;
       playTrack(currentPlaylist[prevIndex], prevIndex, currentPlaylist);
     }
 
-    // ENCHAÎNEMENT AUTOMATIQUE QUAND LA MUSIQUE SE TERMINE
     mainAudio.addEventListener('ended', () => {
       if (btnLoop.classList.contains('active-loop') && currentPlaylist.length === 1) {
-        mainAudio.currentTime = 0; mainAudio.play(); // Boucle la même piste s'il n'y en a qu'une
+        mainAudio.currentTime = 0; mainAudio.play(); 
       } else {
-        playNextTrack(); // Sinon passe à la suivante
+        playNextTrack(); 
       }
     });
 
@@ -415,13 +428,12 @@
     navAlbums.addEventListener('click', () => { setActiveNav(navAlbums); searchBar.value = ""; viewTitle.innerText = "Vos Albums"; displayAlbums(); });
     navArtists.addEventListener('click', () => { setActiveNav(navArtists); searchBar.value = ""; viewTitle.innerText = "Vos Artistes"; displayArtists(); });
 
-    // LA FONCTION DE LECTURE MODIFIÉE POUR PRENDRE LA PLAYLIST EN COMPTE
     async function playTrack(track, index, playlist) {
       currentPlaylist = playlist;
       currentTrackIndex = index;
       
       navHome.click(); 
-      togglePlayIcon(false); // Affiche le bouton "Play" (comme une pause) pendant qu'on charge
+      togglePlayIcon(false); 
       
       homeTitle.innerText = "Chargement...";
       homeArtistAlbum.innerText = "Téléchargement sécurisé...";
@@ -433,7 +445,6 @@
       bottomCover.style.backgroundImage = coverUrl;
       homeCover.style.backgroundImage = coverUrl;
 
-      // Coloration de la piste active dans le tableau
       document.querySelectorAll('.track-item').forEach(el => el.classList.remove('playing'));
       const activeRow = document.getElementById(`track-row-${track.id}`);
       if(activeRow) activeRow.classList.add('playing');
@@ -461,7 +472,7 @@
         bottomArtist.innerText = `${track.artist} - ${track.album}`;
 
         mainAudio.play()
-          .then(() => togglePlayIcon(true)) // Met le bouton sur "Pause" quand ça lit vraiment
+          .then(() => togglePlayIcon(true)) 
           .catch(e => console.error("Erreur lecture:", e));
       } catch (e) {
         console.error(e);
@@ -480,16 +491,15 @@
         tracks = tracks.filter(t => (t.title && t.title.toLowerCase().includes(searchTerm)) || (t.artist && t.artist.toLowerCase().includes(searchTerm)) || (t.album && t.album.toLowerCase().includes(searchTerm)));
       }
 
-      const tracksToDisplay = tracks.slice(0, 200); // Affiche les 200 premiers pour pas faire ramer
+      const tracksToDisplay = tracks.slice(0, 200); 
       trackTableBody.innerHTML = '';
 
       if (tracksToDisplay.length === 0) { trackTableBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 40px; color:#666;">Aucun résultat.</td></tr>'; return; }
 
-      // On passe toute la liste filtrée à chaque clic, pour que le bouton "Suivant" lise la suite de la recherche
       tracksToDisplay.forEach((track, index) => {
         const tr = document.createElement('tr');
         tr.className = 'track-item';
-        tr.id = `track-row-${track.id}`; // Pour pouvoir la surligner quand la musique change toute seule
+        tr.id = `track-row-${track.id}`; 
         
         if (track.id === (currentPlaylist[currentTrackIndex]?.id)) tr.classList.add('playing');
 
